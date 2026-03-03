@@ -51,6 +51,13 @@ parser.add_argument('-t', '--test',
                     action='store_true',
                     default=False,
                     dest='test')
+parser.add_argument('--multi',
+                    help='Multi-monitor mode: `single` (default, primary only), '
+                         '`mirror` (same comic centered on every screen), '
+                         '`per-screen` (one different comic per screen).',
+                    choices=['single', 'mirror', 'per-screen'],
+                    default='single',
+                    dest='multi_mode')
 parser.add_argument('--clean-cache',
                     help='Clean the cache folder and exit',
                     action='store_true',

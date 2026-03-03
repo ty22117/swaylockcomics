@@ -51,5 +51,39 @@ def get_screens_info():
     return out
 
 
+def get_wayland_outputs():
+    '''Detect connected DRM outputs from /sys/class/drm/.
+    Returns list of {"name": str, "width": int, "height": int}.
+    Works on Wayland systems where xrandr is unavailable.
+    '''
+    import os as _os
+    import glob as _gglob
+    outputs = []
+    for d in sorted(_gglob.glob('/sys/class/drm/card*-*/')):
+        try:
+            status = open(d + 'status').read().strip()
+        except Exception:
+            continue
+        if status != 'connected':
+            continue
+        try:
+            first_mode = open(d + 'modes').readline().strip()
+        except Exception:
+            continue
+        if not first_mode:
+            continue
+        connector = re.sub(r'^card\d+-', '', _os.path.basename(d.rstrip('/')))
+        m = re.match(r'^(\d+)x(\d+)$', first_mode)
+        if not m:
+            continue
+        outputs.append({
+            'name': connector,
+            'width': int(m.group(1)),
+            'height': int(m.group(2)),
+        })
+    return outputs
+
+
 if __name__ == '__main__':
     print(get_screens_info())
+    print(get_wayland_outputs())
