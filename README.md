@@ -27,7 +27,7 @@ Comics supported:
 
 ## Install
 
-Easy peasy: `pip install swaylockcomics`
+Pull the repo and install it locally
 
 &nbsp;
 
