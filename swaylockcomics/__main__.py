@@ -58,24 +58,31 @@ def md5(fname):
 
 
 def clean_cache():
-    """Maintain all the cached strips, keep max 5 strips at a time"""
+    """Maintain all the cached strips, keep max 5 Calvin and Hobbes strips at a time"""
     printv("Removing non-jpg-files...")
     all_strips_files = glob.glob("{}/strips/*".format(cachedir))
     for file in all_strips_files:
         if ".jpg" not in file:
             printv("Deleting `{}`".format(file))
             os.remove(file)
-    # Only keep the 5 newest files
-    printv("Keeping only the five last images...")
-    all_strips_files = sorted(all_strips_files, key=sort_filename_by_date, reverse=True)
-    printd("Found {} images in `all_strips_files`".format(len(all_strips_files)))
+    # Remove all non-Calvin and Hobbes comics
+    printv("Removing non-Calvin and Hobbes comics...")
+    all_strips_files = glob.glob("{}/strips/*".format(cachedir))
+    for file in all_strips_files:
+        if "calvinandhobbes" not in file and ".jpg" in file:
+            printv("Deleting `{}`".format(file))
+            os.remove(file)
+    # Only keep the 5 newest Calvin and Hobbes files
+    printv("Keeping only the five last Calvin and Hobbes images...")
+    all_strips_files = sorted(glob.glob("{}/strips/*calvinandhobbes*".format(cachedir)), key=sort_filename_by_date, reverse=True)
+    printd("Found {} Calvin and Hobbes images in `all_strips_files`".format(len(all_strips_files)))
     if len(all_strips_files) > 5:
         clean_number = len(all_strips_files) - 5
         printd(
-            "number of images in `all_strips_files`: {}".format(len(all_strips_files))
+            "number of Calvin and Hobbes images in `all_strips_files`: {}".format(len(all_strips_files))
         )
         printd("clean_number: {}".format(clean_number))
-        for file in all_strips_files[4:-1]:
+        for file in all_strips_files[5:]:
             printd("Deleting this file: {}".format(file))
             os.remove(file)
 
@@ -365,6 +372,7 @@ def main():
         link = False
         extra_info = ""
         comic_date = now
+        printv("No internet available, will use cached comic if possible")
 
     # Set filename for comic strip to be saved
     if args.xkcd_no_alttext is True:
@@ -402,8 +410,15 @@ def main():
 
     # Make a failsafe in case it can't fetch a comic strip at all
     if link is False:
-        printv("Comic returns `False` in link. Using XKCD-fallback strip")
-        strip = backup_strip
+        printv("Comic returns `False` in link. Trying to use cached comic...")
+        # For Calvin and Hobbes, try to use a random cached comic
+        cached_comics = glob.glob("{}/strips/*calvinandhobbes*".format(cachedir))
+        if cached_comics:
+            strip = cached_comics[randint(0, len(cached_comics) - 1)]
+            printv("Using cached comic: {}".format(strip))
+        else:
+            printv("No cached comic found. Using XKCD-fallback strip")
+            strip = backup_strip
     else:
         swaylockcomics._timing.midlog("Starting check comic or download")
         # ...but if all is ok, continue.
@@ -442,9 +457,8 @@ def main():
         if args.multi_mode == "per-screen" and len(wayland_outputs) > 1:
             strips_map = {wayland_outputs[0]["name"]: strip}
             for out_info in wayland_outputs[1:]:
-                comic_name = _getcomics.comics()[
-                    randint(0, len(_getcomics.comics()) - 1)
-                ]
+                # Use only Calvin and Hobbes for all screens
+                comic_name = "calvinandhobbes"
                 extra_strip = "{}{}-{}.jpg".format(strips_folder, comic_name, now)
                 if not os.path.exists(extra_strip):
                     _info = _getcomics.comics(comic=comic_name)

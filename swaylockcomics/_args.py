@@ -28,9 +28,9 @@ parser.add_argument('-l', '--list-comics',
                     dest='list_comics')
 parser.add_argument('-c', '--comic',
                     help='Chose what comic to use. '
-                    'If no comic is called it will randomize.',
+                    'If no comic is called it will default to Calvin and Hobbes.',
                     action='store',
-                    default=False,
+                    default='calvinandhobbes',
                     dest='comic')
 parser.add_argument('-f', '--filter',
                     help='Chose what obfuscation filter to use, either '

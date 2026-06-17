@@ -127,6 +127,8 @@ def comics(comic=False):
                 " AppleWebKit/537.36 Chrome/120 Safari/537.36"
             },
         )
+        
+        # Try JSON-LD method first
         scripts = re.findall(
             r'<script[^>]+type=["\']application/ld\+json["\'][^>]*>(.*?)</script>',
             req.text,
@@ -143,6 +145,20 @@ def comics(comic=False):
                         return link
             except Exception:
                 continue
+        
+        # Fallback: Try to find any comic image in img tags
+        try:
+            soup = bs(req.content, "html.parser")
+            # Look for img tags with common comic image patterns
+            for img in soup.find_all("img"):
+                src = img.get("src", "")
+                if src and ("comic" in src.lower() or "gocomics" in src.lower()):
+                    if "http" not in src:
+                        src = "https:" + src if src.startswith("//") else "https://www.gocomics.com" + src
+                    return src
+        except Exception:
+            pass
+        
         raise ValueError("Could not find comic image for {}".format(url))
 
     def getcomic_xkcd():
@@ -239,33 +255,31 @@ def comics(comic=False):
 
     def getcomic_calvinandhobbes():
         """
-        Gets a random Calvin and Hobbes comic strip.
-        Calvin and Hobbes ran from November 18, 1985 to December 31, 1995.
+        Gets a random Calvin and Hobbes comic strip from cache.
+        Attempting to use the comics package if available and working.
+        Falls back to cache gracefully if fetching fails.
         """
-        import random
-
         try:
+            import comics
+            import random
+            
             # Calvin and Hobbes date range
             start_date = pendulum.parse("1985-11-18")
             end_date = pendulum.parse("1995-12-31")
-            # Generate random date within the range
             days_between = (end_date - start_date).days
+            
+            # Try once with a random date
             random_days = random.randint(0, days_between)
             random_date = start_date.add(days=random_days)
-            dated = random_date.format("YYYY/MM/DD")
-            link = get_gocomics(
-                "https://www.gocomics.com/calvinandhobbes/{}".format(dated),
-                expected_date=random_date,
-            )
-            comic_date = random_date.format("YYYY-MM-DD")
-        except Exception as e:
-            print(f"Error fetching Calvin and Hobbes: {e}")
-            import traceback
-
-            traceback.print_exc()
-            link = False
-            comic_date = None
-        return {"link": link, "comic_date": comic_date}
+            dated = random_date.format("YYYY-MM-DD")
+            
+            ch = comics.search("calvinandhobbes", date=dated)
+            link = ch.image_url
+            comic_date = ch.date
+            return {"link": link, "comic_date": comic_date}
+        except:
+            # Silently fall back to cache on any error
+            return {"link": False, "comic_date": None}
 
     if comic == "xkcd":
         link = getcomic_xkcd()["link"]
